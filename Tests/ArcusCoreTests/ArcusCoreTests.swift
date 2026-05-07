@@ -1,0 +1,125 @@
+import Foundation
+import Testing
+@testable import ArcusCore
+
+@Test func deviceAlertPayloadDecodesPolygonWireFormat() throws {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    let payload = try decoder.decode(DeviceAlertPayload.self, from: Data(polygonJSON.utf8))
+
+    #expect(payload.event == "Tornado Watch")
+    #expect(payload.currentRevisionUrn == "urn:rev:123")
+    #expect(payload.h3Cells == [61773312345, 61773312346])
+    #expect(payload.geometry == DeviceAlertGeometry.polygon(rings: [[
+        DeviceAlertCoordinate(longitude: -104.99, latitude: 39.74),
+        DeviceAlertCoordinate(longitude: -104.9, latitude: 39.8),
+        DeviceAlertCoordinate(longitude: -104.99, latitude: 39.74),
+    ]]))
+}
+
+@Test func deviceAlertPayloadEncodesMultiPolygonWireFormat() throws {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    encoder.outputFormatting = [.sortedKeys]
+    let date = Date(timeIntervalSince1970: 1_711_234_567)
+
+    let payload = DeviceAlertPayload(
+        id: UUID(uuidString: "88888888-8888-8888-8888-888888888888")!,
+        event: "Severe Thunderstorm Warning",
+        currentRevisionUrn: "urn:rev:999",
+        currentRevisionSent: date,
+        messageType: "Alert",
+        state: "Active",
+        created: date,
+        updated: date,
+        lastSeenActive: date,
+        sent: date,
+        effective: date,
+        onset: nil,
+        expires: date,
+        ends: nil,
+        severity: "Severe",
+        urgency: "Immediate",
+        certainty: "Likely",
+        areaDesc: "Denver",
+        senderName: "NWS Boulder",
+        headline: "Warning",
+        description: "Storms expected.",
+        instructions: "Take cover.",
+        response: "Shelter",
+        ugc: ["COC031"],
+        h3Cells: [61773312347],
+        geometry: .multiPolygon(polygons: [[[
+            DeviceAlertCoordinate(longitude: -105.0, latitude: 39.7),
+            DeviceAlertCoordinate(longitude: -104.98, latitude: 39.72),
+            DeviceAlertCoordinate(longitude: -105.0, latitude: 39.7),
+        ]]]),
+        tornadoDetection: nil,
+        tornadoDamageThreat: nil,
+        maxWindGust: "70 mph",
+        maxHailSize: "1.25 in",
+        windThreat: "Observed",
+        hailThreat: "Radar Indicated",
+        thunderstormDamageThreat: "Considerable",
+        flashFloodDetection: nil,
+        flashFloodDamageThreat: nil
+    )
+
+    let encoded = try encoder.encode(payload)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+    let geometry = object?["geometry"] as? [String: Any]
+    let h3Cells = (object?["h3Cells"] as? [NSNumber])?.map(\.int64Value)
+
+    #expect(object?["currentRevisionUrn"] as? String == "urn:rev:999")
+    #expect(h3Cells == [61773312347])
+    #expect(geometry?["type"] as? String == "MultiPolygon")
+}
+
+private let polygonJSON = """
+{
+  "id": "77777777-7777-7777-7777-777777777777",
+  "event": "Tornado Watch",
+  "currentRevisionUrn": "urn:rev:123",
+  "currentRevisionSent": "2026-03-17T12:00:00Z",
+  "messageType": "Alert",
+  "state": "Active",
+  "created": "2026-03-17T12:01:00Z",
+  "updated": "2026-03-17T12:02:00Z",
+  "lastSeenActive": "2026-03-17T12:03:00Z",
+  "sent": "2026-03-17T12:00:00Z",
+  "effective": "2026-03-17T12:00:00Z",
+  "onset": null,
+  "expires": "2026-03-17T18:00:00Z",
+  "ends": null,
+  "severity": "Severe",
+  "urgency": "Immediate",
+  "certainty": "Likely",
+  "areaDesc": "Denver",
+  "senderName": "NWS Boulder",
+  "headline": "Watch",
+  "description": "A watch is in effect.",
+  "instructions": "Stay weather aware.",
+  "response": "Monitor",
+  "ugc": ["COC031", "COC059"],
+  "h3Cells": [61773312345, 61773312346],
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-104.99, 39.74],
+        [-104.9, 39.8],
+        [-104.99, 39.74]
+      ]
+    ]
+  },
+  "tornadoDetection": "Radar Indicated",
+  "tornadoDamageThreat": "Considerable",
+  "maxWindGust": null,
+  "maxHailSize": null,
+  "windThreat": null,
+  "hailThreat": null,
+  "thunderstormDamageThreat": null,
+  "flashFloodDetection": null,
+  "flashFloodDamageThreat": null
+}
+"""
