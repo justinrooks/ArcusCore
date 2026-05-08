@@ -123,3 +123,81 @@ private let polygonJSON = """
   "flashFloodDamageThreat": null
 }
 """
+
+@Test func locationSnapshotPushPayloadDecodesWireFormat() throws {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+
+    let payload = try decoder.decode(LocationSnapshotPushPayload.self, from: Data(locationSnapshotJSON.utf8))
+
+    #expect(payload.cellScheme == "h3")
+    #expect(payload.county == "COC031")
+    #expect(payload.zone == "COZ041")
+    #expect(payload.installationId == "11111111-2222-3333-4444-555555555555")
+    #expect(payload.isSubscribed == true)
+}
+
+@Test func locationSnapshotPushPayloadEncodesStableWireKeys() throws {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    encoder.outputFormatting = [.sortedKeys]
+
+    let payload = LocationSnapshotPushPayload(
+        capturedAt: Date(timeIntervalSince1970: 1_714_000_000),
+        locationAgeSeconds: 12.5,
+        horizontalAccuracyMeters: 9.8,
+        cellScheme: "h3",
+        h3Cell: 61773312345,
+        h3Resolution: 8,
+        county: "COC031",
+        zone: "COZ041",
+        fireZone: "COZ241",
+        apnsDeviceToken: "token",
+        installationId: "11111111-2222-3333-4444-555555555555",
+        source: "unknown",
+        auth: "whenInUse",
+        appVersion: "1.2.3",
+        buildNumber: "456",
+        platform: "iOS",
+        osVersion: "26.0",
+        apnsEnvironment: "sandbox",
+        countyLabel: "Denver County",
+        fireZoneLabel: "Front Range",
+        isSubscribed: false
+    )
+
+    let encoded = try encoder.encode(payload)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+
+    #expect(object?["county"] as? String == "COC031")
+    #expect(object?["zone"] as? String == "COZ041")
+    #expect(object?["installationId"] as? String == "11111111-2222-3333-4444-555555555555")
+    #expect(object?["countyCode"] == nil)
+    #expect(object?["forecastZone"] == nil)
+}
+
+private let locationSnapshotJSON = """
+{
+  "capturedAt": "2026-03-17T12:00:00Z",
+  "locationAgeSeconds": 18.5,
+  "horizontalAccuracyMeters": 7.2,
+  "cellScheme": "h3",
+  "h3Cell": 61773312345,
+  "h3Resolution": 8,
+  "county": "COC031",
+  "zone": "COZ041",
+  "fireZone": "COZ241",
+  "apnsDeviceToken": "abc123",
+  "installationId": "11111111-2222-3333-4444-555555555555",
+  "source": "unknown",
+  "auth": "whenInUse",
+  "appVersion": "1.2.3",
+  "buildNumber": "456",
+  "platform": "iOS",
+  "osVersion": "26.0",
+  "apnsEnvironment": "sandbox",
+  "countyLabel": "Denver County",
+  "fireZoneLabel": "Front Range",
+  "isSubscribed": true
+}
+"""
