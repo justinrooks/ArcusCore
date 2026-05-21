@@ -202,41 +202,57 @@ private let locationSnapshotJSON = """
 }
 """
 
-@Test func hotAlertAPNsPayloadDecodesStableWireKeys() throws {
+@Test func hotAlertAPNsPayloadDecodesCanonicalKey() throws {
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
 
-    let payload = try decoder.decode(HotAlertAPNsPayload.self, from: Data(hotAlertPayloadJSON.utf8))
+    let payload = try decoder.decode(HotAlertAPNsPayload.self, from: Data(hotAlertCanonicalOnlyJSON.utf8))
 
-    #expect(payload.alertID == "11111111-2222-3333-4444-555555555555")
-    #expect(payload.seriesId == "11111111-2222-3333-4444-555555555555")
+    #expect(payload.arcusAlertId == "11111111-2222-3333-4444-555555555555")
     #expect(payload.revisionSent == ISO8601DateFormatter().date(from: "2026-05-20T12:34:56Z"))
     #expect(payload.resolvedAlertID == "11111111-2222-3333-4444-555555555555")
 }
 
-@Test func hotAlertAPNsPayloadEncodesStableWireKeys() throws {
+@Test func hotAlertAPNsPayloadEncodesCanonicalKeys() throws {
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
     encoder.outputFormatting = [.sortedKeys]
 
     let payload = HotAlertAPNsPayload(
-        alertID: "11111111-2222-3333-4444-555555555555",
-        seriesId: "11111111-2222-3333-4444-555555555555",
+        arcusAlertId: "11111111-2222-3333-4444-555555555555",
         revisionSent: Date(timeIntervalSince1970: 1_747_744_896)
     )
 
     let encoded = try encoder.encode(payload)
     let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
 
-    #expect(object?[HotAlertAPNsPayload.alertIDKey] as? String == "11111111-2222-3333-4444-555555555555")
-    #expect(object?[HotAlertAPNsPayload.seriesIDKey] as? String == "11111111-2222-3333-4444-555555555555")
+    #expect(object?[HotAlertAPNsPayload.arcusAlertIDKey] as? String == "11111111-2222-3333-4444-555555555555")
     #expect(object?[HotAlertAPNsPayload.revisionSentKey] as? String == "2025-05-20T12:41:36Z")
+    #expect(object?["alertID"] == nil)
+    #expect(object?["seriesId"] == nil)
 }
 
-private let hotAlertPayloadJSON = """
+@Test func hotAlertAPNsPayloadRoundTripPreservesCanonicalIdentifierAndRevisionSent() throws {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+
+    let original = HotAlertAPNsPayload(
+        arcusAlertId: "round-trip-id",
+        revisionSent: Date(timeIntervalSince1970: 1_747_744_896)
+    )
+
+    let encoded = try encoder.encode(original)
+    let decoded = try decoder.decode(HotAlertAPNsPayload.self, from: encoded)
+
+    #expect(decoded.arcusAlertId == "round-trip-id")
+    #expect(decoded.revisionSent == original.revisionSent)
+}
+
+private let hotAlertCanonicalOnlyJSON = """
 {
-  "alertID": "11111111-2222-3333-4444-555555555555",
-  "seriesId": "11111111-2222-3333-4444-555555555555",
+  "arcusAlertId": "11111111-2222-3333-4444-555555555555",
   "revisionSent": "2026-05-20T12:34:56Z"
 }
 """
