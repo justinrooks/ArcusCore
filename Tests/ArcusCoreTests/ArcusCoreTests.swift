@@ -201,3 +201,42 @@ private let locationSnapshotJSON = """
   "isSubscribed": true
 }
 """
+
+@Test func hotAlertAPNsPayloadDecodesStableWireKeys() throws {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+
+    let payload = try decoder.decode(HotAlertAPNsPayload.self, from: Data(hotAlertPayloadJSON.utf8))
+
+    #expect(payload.alertID == "11111111-2222-3333-4444-555555555555")
+    #expect(payload.seriesId == "11111111-2222-3333-4444-555555555555")
+    #expect(payload.revisionSent == ISO8601DateFormatter().date(from: "2026-05-20T12:34:56Z"))
+    #expect(payload.resolvedAlertID == "11111111-2222-3333-4444-555555555555")
+}
+
+@Test func hotAlertAPNsPayloadEncodesStableWireKeys() throws {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    encoder.outputFormatting = [.sortedKeys]
+
+    let payload = HotAlertAPNsPayload(
+        alertID: "11111111-2222-3333-4444-555555555555",
+        seriesId: "11111111-2222-3333-4444-555555555555",
+        revisionSent: Date(timeIntervalSince1970: 1_747_744_896)
+    )
+
+    let encoded = try encoder.encode(payload)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+
+    #expect(object?[HotAlertAPNsPayload.alertIDKey] as? String == "11111111-2222-3333-4444-555555555555")
+    #expect(object?[HotAlertAPNsPayload.seriesIDKey] as? String == "11111111-2222-3333-4444-555555555555")
+    #expect(object?[HotAlertAPNsPayload.revisionSentKey] as? String == "2025-05-20T12:41:36Z")
+}
+
+private let hotAlertPayloadJSON = """
+{
+  "alertID": "11111111-2222-3333-4444-555555555555",
+  "seriesId": "11111111-2222-3333-4444-555555555555",
+  "revisionSent": "2026-05-20T12:34:56Z"
+}
+"""
