@@ -1,0 +1,14 @@
+## 2026-05-26
+- Repos scanned: `project-arcus` (SkyAware), `arcus-signal`, `ArcusCore`
+- Commit window: `2026-05-19` through `2026-05-26` (last 7 days; no prior automation marker)
+- High-risk areas inspected:
+  - APNs hot-alert payload contract wiring and parsing (`arcusAlertId`/`revisionSent`)
+  - Geometry-first targeting and UGC fallback behavior
+  - Notification dispatch fallback for unsupported geometry
+  - Targeted `/api/v2/alerts?id=<seriesUUID>` API contract
+  - Location context freshness/state application in `LocationSession`
+- Top recommended test:
+  - `TargetEventRevisionJob` should enqueue/drain UGC notification fallback when H3 cover computation fails (`unsupportedGeometry`) and avoid H3 drain in that path.
+- Watchlist:
+  - `LocationSession.applyResolvedContext` refresh-key dedupe behavior appears under-tested for repeated context application and upload side effects.
+- Implementation recommended: **Yes** (small, deterministic high-risk tests in app/server repos)
