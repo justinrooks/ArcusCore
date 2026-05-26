@@ -16,4 +16,5 @@ public enum LocationUploadSource: String, Sendable, Codable {
     case backgroundLocationChange
     case onboarding
     case settingsPreference
+    case unknown
 }
