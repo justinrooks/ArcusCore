@@ -12,3 +12,46 @@
 - Watchlist:
   - `LocationSession.applyResolvedContext` refresh-key dedupe behavior appears under-tested for repeated context application and upload side effects.
 - Implementation recommended: **Yes** (small, deterministic high-risk tests in app/server repos)
+
+## 2026-06-02
+- Repos scanned: `project-arcus` (SkyAware), `arcus-signal`, `ArcusCore`
+- Commit window: `2026-05-26T15:00:38Z` through `2026-06-02`
+- High-risk areas inspected:
+  - SPC map batch staging, split convective/fire persistence, and all-clear rollback behavior
+  - Expanded `LocationUploadSource` compatibility across shared DTOs, server validation, and DB constraints
+  - Dedicated device preference sync endpoint coverage vs. location snapshot ingestion coverage
+  - Mesoscale discussion payload compatibility and notification copy changes
+- Top recommended test:
+  - `arcus-signal` should accept a `POST /api/v1/devices/location-snapshots` payload using `source=backgroundLocationChange` and persist the presence row without violating the expanded source constraint.
+- Watchlist:
+  - `project-arcus` fire all-clear rollback path is structurally similar to the untested convective rollback path but has weaker direct evidence of breakage risk.
+- Implementation recommended: **Yes** (small deterministic contract/integration tests only)
+
+## 2026-06-09
+- Repository reviewed: `ArcusCore`
+- Commit window inspected: no commits found since `2026-06-02T15:07:36Z`; used current-default-branch high-risk inspection instead of scanning older history
+- High-risk areas inspected:
+  - Shared DTO contracts in `Sources/ArcusCore/DevicePreferenceSyncPayload.swift`
+  - Shared DTO response contract in `Sources/ArcusCore/DevicePreferenceSyncAcceptedResponse.swift`
+  - Shared enum wire compatibility in `Sources/ArcusCore/LocationUploadSource.swift`
+  - Existing contract-test patterns in `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+- Files inspected:
+  - `Sources/ArcusCore/DevicePreferenceSyncPayload.swift`
+  - `Sources/ArcusCore/DevicePreferenceSyncAcceptedResponse.swift`
+  - `Sources/ArcusCore/LocationUploadSource.swift`
+  - `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+  - `Package.swift`
+- Existing relevant tests found:
+  - `deviceAlertPayloadDecodesPolygonWireFormat`
+  - `deviceAlertPayloadEncodesMultiPolygonWireFormat`
+  - `locationSnapshotPushPayloadDecodesWireFormat`
+  - `locationSnapshotPushPayloadEncodesStableWireKeys`
+  - `hotAlertAPNsPayloadDecodesCanonicalKey`
+  - `hotAlertAPNsPayloadEncodesCanonicalKeys`
+  - `hotAlertAPNsPayloadRoundTripPreservesCanonicalIdentifierAndRevisionSent`
+- Top recommended test:
+  - Add a focused raw-value round-trip test for `LocationUploadSource` that encodes/decodes every declared case, with explicit coverage for the new `unknown` case.
+- Watchlist:
+  - Add contract coverage for `DevicePreferenceSyncPayload` and `DevicePreferenceSyncAcceptedResponse` if either type is consumed across the app/server boundary with ISO-8601 dates or stable key expectations; evidence is present in the type declarations but no local usage was found in this repo.
+- Implementation recommended: **Yes** for the enum contract test; **maybe** for the device preference sync DTOs pending local consumer evidence
+- Out-of-scope repositories intentionally not scanned: none

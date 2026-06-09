@@ -176,6 +176,32 @@ private let polygonJSON = """
     #expect(object?["forecastZone"] == nil)
 }
 
+@Test func locationUploadSourceRoundTripsAllCasesThroughCodable() throws {
+    let encoder = JSONEncoder()
+    let decoder = JSONDecoder()
+
+    let cases: [LocationUploadSource] = [
+        .foregroundPrime,
+        .foregroundActivate,
+        .foregroundLocationChange,
+        .manualRefresh,
+        .backgroundRefresh,
+        .backgroundLocationChange,
+        .onboarding,
+        .settingsPreference,
+        .unknown,
+    ]
+
+    for source in cases {
+        let encoded = try encoder.encode(source)
+        let rawValue = try decoder.decode(String.self, from: encoded)
+        let decoded = try decoder.decode(LocationUploadSource.self, from: encoded)
+
+        #expect(rawValue == source.rawValue)
+        #expect(decoded == source)
+    }
+}
+
 private let locationSnapshotJSON = """
 {
   "capturedAt": "2026-03-17T12:00:00Z",
