@@ -176,6 +176,58 @@ private let polygonJSON = """
     #expect(object?["forecastZone"] == nil)
 }
 
+@Test func devicePreferenceSyncPayloadRoundTripsStableWireKeys() throws {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    let decoder = JSONDecoder()
+
+    let payload = DevicePreferenceSyncPayload(
+        installationId: "11111111-2222-3333-4444-555555555555",
+        apnsDeviceToken: "abc123",
+        apnsEnvironment: "sandbox",
+        platform: "iOS",
+        osVersion: "26.0",
+        appVersion: "1.2.3",
+        buildNumber: "456",
+        auth: "whenInUse",
+        isSubscribed: true,
+        source: "backgroundRefresh",
+        reason: "userChangedPreference"
+    )
+
+    let encoded = try encoder.encode(payload)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+    let decoded = try decoder.decode(DevicePreferenceSyncPayload.self, from: encoded)
+
+    #expect(object?["installationId"] as? String == "11111111-2222-3333-4444-555555555555")
+    #expect(object?["apnsDeviceToken"] as? String == "abc123")
+    #expect(object?["apnsEnvironment"] as? String == "sandbox")
+    #expect(object?["isSubscribed"] as? Bool == true)
+    #expect(object?["source"] as? String == "backgroundRefresh")
+    #expect(object?["reason"] as? String == "userChangedPreference")
+    #expect(object?["installation_id"] == nil)
+    #expect(decoded == payload)
+}
+
+@Test func devicePreferenceSyncAcceptedResponseRoundTripsDefaultDateEncoding() throws {
+    let encoder = JSONEncoder()
+    let decoder = JSONDecoder()
+
+    let response = DevicePreferenceSyncAcceptedResponse(
+        status: "accepted",
+        receivedAt: Date(timeIntervalSince1970: 1_747_744_896)
+    )
+
+    let encoded = try encoder.encode(response)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+    let decoded = try decoder.decode(DevicePreferenceSyncAcceptedResponse.self, from: encoded)
+
+    #expect(object?["status"] as? String == "accepted")
+    #expect(object?["receivedAt"] is NSNumber)
+    #expect(decoded.status == response.status)
+    #expect(decoded.receivedAt == response.receivedAt)
+}
+
 @Test func locationUploadSourceRoundTripsAllCasesThroughCodable() throws {
     let encoder = JSONEncoder()
     let decoder = JSONDecoder()
