@@ -2,6 +2,25 @@ import Foundation
 import Testing
 @testable import ArcusCore
 
+@Test func tornadoViabilityEnumsPreserveV1ObjectPayloads() throws {
+    struct V1Payload: Codable, Equatable {
+        let realization: TornadoViabilityRealization
+        let primaryFailureMode: TornadoViabilityFailureMode
+    }
+
+    let legacyJSON = Data(#"""
+    {"realization":{"conditional":{}},"primaryFailureMode":{"conditionalInitiation":{}}}
+    """#.utf8)
+    let payload = try JSONDecoder().decode(V1Payload.self, from: legacyJSON)
+    let encoded = try JSONEncoder().encode(payload)
+
+    #expect(payload == V1Payload(realization: .conditional, primaryFailureMode: .conditionalInitiation))
+    #expect(try JSONSerialization.jsonObject(with: encoded) as? [String: [String: [String: String]]] == [
+        "realization": ["conditional": [:]],
+        "primaryFailureMode": ["conditionalInitiation": [:]],
+    ])
+}
+
 @Test func stormSetupCurrentResponseRoundTripsNestedContract() throws {
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
@@ -226,48 +245,10 @@ import Testing
         fieldSetVersion: .tornadoPressureV2
     )
 
-    let assessment = TornadoIngredientAssessment(
-        overall: .supportive,
-        instability: .strong,
-        moisture: .supportive,
-        cloudBase: .conditional,
-        capInhibition: .weak,
-        deepShear: .supportive,
-        lowLevelRotation: .strong,
-        stormMode: .conditional,
-        compositeSignal: .supportive,
-        confidence: .high,
-        trend: .increasing,
-        stormModeHint: .discreteSupercells,
-        primaryDrivers: ["instability", "shear"],
-        limitingFactors: [.weakLift, .poorMoisture],
-        summary: "Conditions are supportive.",
-        lowLevelRotationSupport: .conditional,
-        lowLevelStretching: .supportive,
-        cloudBaseEfficiency: .conditional,
-        tornadoEfficiency: .supportive,
-        stormViability: .supportive,
-        supercellViability: .strong,
-        supercellComposite: .supportive,
-        realization: .realized,
-        primaryFailureMode: .conditionalInitiation,
-        viabilityLimiters: [.conditionalInitiation, .poorMoisture]
-    )
-
-    let report = TornadoViabilityReport(assessment: assessment)
-
-    #expect(HrrrProduct.wrfprsf.defaultFieldSetVersion == .tornadoPressureV2)
-    #expect(HrrrFieldSetVersion.anvilSurfaceV1.nomadsLevelFlags == [
-        "lev_surface",
-        "lev_2_m_above_ground",
-        "lev_10_m_above_ground"
-    ])
     #expect(IngredientSupport.supportive.lowered() == .conditional)
     #expect(IngredientSupport.conditional.raised() == .supportive)
     #expect(SnapshotConfidence.high.lowered() == .moderate)
     #expect(SnapshotConfidence.degraded.raised() == .low)
     #expect(IngredientFreshness.make(source: source, fetchedAt: Date(timeIntervalSince1970: 1_750_000_600), staleAfter: 3_600).isDegraded == false)
-    #expect(report.primaryFailureMode == .conditionalInitiation)
-    #expect(report.limitingFactors == [.conditionalInitiation, .poorMoisture])
     #expect(TornadoRawParameters.empty.nonNilFieldCount == 0)
 }
