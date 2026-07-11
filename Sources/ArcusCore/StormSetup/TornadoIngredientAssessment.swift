@@ -33,29 +33,6 @@ public enum TornadoViabilityRealization: String, Sendable, Codable, Hashable {
     case blocked
     case conditional
     case realized
-
-    private enum CodingKeys: String, CodingKey {
-        case unknown
-        case blocked
-        case conditional
-        case realized
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        guard container.allKeys.count == 1, let key = container.allKeys.first else {
-            throw DecodingError.dataCorrupted(
-                .init(codingPath: decoder.codingPath, debugDescription: "Expected exactly one tornado viability realization case.")
-            )
-        }
-        _ = try container.decode(TornadoViabilityEnumPayload.self, forKey: key)
-        self.init(rawValue: key.rawValue)!
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(TornadoViabilityEnumPayload(), forKey: CodingKeys(rawValue: rawValue)!)
-    }
 }
 
 public enum TornadoViabilityFailureMode: String, Sendable, Codable, Hashable {
@@ -74,43 +51,7 @@ public enum TornadoViabilityFailureMode: String, Sendable, Codable, Hashable {
     case fixedEffectiveStpDisagreement
     case missingStormMode
     case compositeMismatch
-
-    private enum CodingKeys: String, CodingKey {
-        case none
-        case weakInstability
-        case weakDeepShear
-        case weakLowLevelRotation
-        case weakLowLevelStretching
-        case elevatedCloudBases
-        case strongCap
-        case conditionalInitiation
-        case weakStormOrganization
-        case weakLift
-        case messyStormMode
-        case poorMoisture
-        case fixedEffectiveStpDisagreement
-        case missingStormMode
-        case compositeMismatch
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        guard container.allKeys.count == 1, let key = container.allKeys.first else {
-            throw DecodingError.dataCorrupted(
-                .init(codingPath: decoder.codingPath, debugDescription: "Expected exactly one tornado viability failure mode case.")
-            )
-        }
-        _ = try container.decode(TornadoViabilityEnumPayload.self, forKey: key)
-        self.init(rawValue: key.rawValue)!
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(TornadoViabilityEnumPayload(), forKey: CodingKeys(rawValue: rawValue)!)
-    }
 }
-
-private struct TornadoViabilityEnumPayload: Codable {}
 
 public extension IngredientSupport {
     static func < (lhs: IngredientSupport, rhs: IngredientSupport) -> Bool {

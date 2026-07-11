@@ -2,22 +2,22 @@ import Foundation
 import Testing
 @testable import ArcusCore
 
-@Test func tornadoViabilityEnumsPreserveV1ObjectPayloads() throws {
+@Test func tornadoViabilityEnumsUseRawStringPayloads() throws {
     struct V1Payload: Codable, Equatable {
         let realization: TornadoViabilityRealization
         let primaryFailureMode: TornadoViabilityFailureMode
     }
 
-    let legacyJSON = Data(#"""
-    {"realization":{"conditional":{}},"primaryFailureMode":{"conditionalInitiation":{}}}
+    let json = Data(#"""
+    {"realization":"conditional","primaryFailureMode":"conditionalInitiation"}
     """#.utf8)
-    let payload = try JSONDecoder().decode(V1Payload.self, from: legacyJSON)
+    let payload = try JSONDecoder().decode(V1Payload.self, from: json)
     let encoded = try JSONEncoder().encode(payload)
 
     #expect(payload == V1Payload(realization: .conditional, primaryFailureMode: .conditionalInitiation))
-    #expect(try JSONSerialization.jsonObject(with: encoded) as? [String: [String: [String: String]]] == [
-        "realization": ["conditional": [:]],
-        "primaryFailureMode": ["conditionalInitiation": [:]],
+    #expect(try JSONSerialization.jsonObject(with: encoded) as? [String: String] == [
+        "realization": "conditional",
+        "primaryFailureMode": "conditionalInitiation",
     ])
 }
 
