@@ -33,6 +33,15 @@ public enum TornadoViabilityRealization: String, Sendable, Codable, Hashable {
     case blocked
     case conditional
     case realized
+
+    public init(from decoder: Decoder) throws {
+        self = try Self.decodeTornadoViabilityEnum(from: decoder, enumName: "tornado viability realization")
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public enum TornadoViabilityFailureMode: String, Sendable, Codable, Hashable {
@@ -51,6 +60,105 @@ public enum TornadoViabilityFailureMode: String, Sendable, Codable, Hashable {
     case fixedEffectiveStpDisagreement
     case missingStormMode
     case compositeMismatch
+
+    public init(from decoder: Decoder) throws {
+        self = try Self.decodeTornadoViabilityEnum(from: decoder, enumName: "tornado viability failure mode")
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+private struct TornadoViabilityLegacyCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int? = nil
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    init?(intValue: Int) {
+        return nil
+    }
+}
+
+private extension RawRepresentable where RawValue == String {
+    static func decodeTornadoViabilityEnum(from decoder: Decoder, enumName: String) throws -> Self {
+        let singleValueContainer = try decoder.singleValueContainer()
+        if let rawValue = try? singleValueContainer.decode(String.self) {
+            guard let value = Self(rawValue: rawValue) else {
+                throw DecodingError.dataCorrupted(
+                    .init(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "Unknown \(enumName) raw value '\(rawValue)'."
+                    )
+                )
+            }
+            return value
+        }
+
+        let container: KeyedDecodingContainer<TornadoViabilityLegacyCodingKey>
+        do {
+            container = try decoder.container(keyedBy: TornadoViabilityLegacyCodingKey.self)
+        } catch {
+            throw DecodingError.dataCorrupted(
+                .init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected \(enumName) to decode from a raw string or legacy keyed object."
+                )
+            )
+        }
+
+        guard !container.allKeys.isEmpty else {
+            throw DecodingError.dataCorrupted(
+                .init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected one legacy \(enumName) case key, but found none."
+                )
+            )
+        }
+
+        guard container.allKeys.count == 1, let key = container.allKeys.first else {
+            throw DecodingError.dataCorrupted(
+                .init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected exactly one legacy \(enumName) case key."
+                )
+            )
+        }
+
+        guard let value = Self(rawValue: key.stringValue) else {
+            throw DecodingError.dataCorrupted(
+                .init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Unknown legacy \(enumName) case key '\(key.stringValue)'."
+                )
+            )
+        }
+
+        do {
+            let payload = try container.nestedContainer(keyedBy: TornadoViabilityLegacyCodingKey.self, forKey: key)
+            guard payload.allKeys.isEmpty else {
+                throw DecodingError.dataCorrupted(
+                    .init(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "Expected legacy \(enumName) case '\(key.stringValue)' to contain an empty object."
+                    )
+                )
+            }
+        } catch {
+            throw DecodingError.dataCorrupted(
+                .init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected legacy \(enumName) case '\(key.stringValue)' to contain an empty object."
+                )
+            )
+        }
+
+        return value
+    }
 }
 
 public extension IngredientSupport {

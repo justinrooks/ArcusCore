@@ -3,22 +3,118 @@ import Testing
 @testable import ArcusCore
 
 @Test func tornadoViabilityEnumsUseRawStringPayloads() throws {
-    struct V1Payload: Codable, Equatable {
-        let realization: TornadoViabilityRealization
-        let primaryFailureMode: TornadoViabilityFailureMode
+    for value in [
+        TornadoViabilityRealization.unknown,
+        .blocked,
+        .conditional,
+        .realized,
+    ] {
+        let encoded = try JSONEncoder().encode(value)
+        let decoded = try JSONDecoder().decode(TornadoViabilityRealization.self, from: encoded)
+
+        #expect(try JSONSerialization.jsonObject(with: encoded, options: [.fragmentsAllowed]) as? String == value.rawValue)
+        #expect(decoded == value)
     }
 
-    let json = Data(#"""
-    {"realization":"conditional","primaryFailureMode":"conditionalInitiation"}
-    """#.utf8)
-    let payload = try JSONDecoder().decode(V1Payload.self, from: json)
-    let encoded = try JSONEncoder().encode(payload)
+    for value in [
+        TornadoViabilityFailureMode.none,
+        .weakInstability,
+        .weakDeepShear,
+        .weakLowLevelRotation,
+        .weakLowLevelStretching,
+        .elevatedCloudBases,
+        .strongCap,
+        .conditionalInitiation,
+        .weakStormOrganization,
+        .weakLift,
+        .messyStormMode,
+        .poorMoisture,
+        .fixedEffectiveStpDisagreement,
+        .missingStormMode,
+        .compositeMismatch,
+    ] {
+        let encoded = try JSONEncoder().encode(value)
+        let decoded = try JSONDecoder().decode(TornadoViabilityFailureMode.self, from: encoded)
 
-    #expect(payload == V1Payload(realization: .conditional, primaryFailureMode: .conditionalInitiation))
-    #expect(try JSONSerialization.jsonObject(with: encoded) as? [String: String] == [
-        "realization": "conditional",
-        "primaryFailureMode": "conditionalInitiation",
-    ])
+        #expect(try JSONSerialization.jsonObject(with: encoded, options: [.fragmentsAllowed]) as? String == value.rawValue)
+        #expect(decoded == value)
+    }
+}
+
+@Test func tornadoViabilityEnumsDecodeLegacyObjectPayloadsAndReencodeAsRawStrings() throws {
+    let realization = try JSONDecoder().decode(
+        TornadoViabilityRealization.self,
+        from: Data(#"{"conditional":{}}"#.utf8)
+    )
+    let failureMode = try JSONDecoder().decode(
+        TornadoViabilityFailureMode.self,
+        from: Data(#"{"conditionalInitiation":{}}"#.utf8)
+    )
+
+    let realizationEncoded = try JSONEncoder().encode(realization)
+    let failureModeEncoded = try JSONEncoder().encode(failureMode)
+
+    #expect(realization == .conditional)
+    #expect(failureMode == .conditionalInitiation)
+    #expect(try JSONSerialization.jsonObject(with: realizationEncoded, options: [.fragmentsAllowed]) as? String == "conditional")
+    #expect(try JSONSerialization.jsonObject(with: failureModeEncoded, options: [.fragmentsAllowed]) as? String == "conditionalInitiation")
+}
+
+@Test func tornadoViabilityEnumsRejectInvalidPayloads() throws {
+    try assertDecodingFails(
+        TornadoViabilityRealization.self,
+        data: Data(#""mystery""#.utf8),
+        expectedMessage: "Unknown tornado viability realization raw value 'mystery'."
+    )
+    try assertDecodingFails(
+        TornadoViabilityFailureMode.self,
+        data: Data(#""not-a-mode""#.utf8),
+        expectedMessage: "Unknown tornado viability failure mode raw value 'not-a-mode'."
+    )
+
+    try assertDecodingFails(
+        TornadoViabilityRealization.self,
+        data: Data(#"{"mystery":{}}"#.utf8),
+        expectedMessage: "Unknown legacy tornado viability realization case key 'mystery'."
+    )
+    try assertDecodingFails(
+        TornadoViabilityFailureMode.self,
+        data: Data(#"{"mystery":{}}"#.utf8),
+        expectedMessage: "Unknown legacy tornado viability failure mode case key 'mystery'."
+    )
+
+    try assertDecodingFails(
+        TornadoViabilityRealization.self,
+        data: Data(#"{}"#.utf8),
+        expectedMessage: "Expected one legacy tornado viability realization case key, but found none."
+    )
+    try assertDecodingFails(
+        TornadoViabilityFailureMode.self,
+        data: Data(#"{}"#.utf8),
+        expectedMessage: "Expected one legacy tornado viability failure mode case key, but found none."
+    )
+
+    try assertDecodingFails(
+        TornadoViabilityRealization.self,
+        data: Data(#"{"blocked":{},"conditional":{}}"#.utf8),
+        expectedMessage: "Expected exactly one legacy tornado viability realization case key."
+    )
+    try assertDecodingFails(
+        TornadoViabilityFailureMode.self,
+        data: Data(#"{"none":{},"conditionalInitiation":{}}"#.utf8),
+        expectedMessage: "Expected exactly one legacy tornado viability failure mode case key."
+    )
+
+    try assertDecodingFails(
+        TornadoViabilityRealization.self,
+        data: Data(#"{"blocked":{"unexpected":true}}"#.utf8),
+        expectedMessage: "Expected legacy tornado viability realization case 'blocked' to contain an empty object."
+    )
+    try assertDecodingFails(
+        TornadoViabilityFailureMode.self,
+        data: Data(#"{"conditionalInitiation":{"unexpected":true}}"#.utf8),
+        expectedMessage: "Expected legacy tornado viability failure mode case 'conditionalInitiation' to contain an empty object."
+    )
 }
 
 @Test func stormSetupCurrentResponseRoundTripsNestedContract() throws {
@@ -251,4 +347,24 @@ import Testing
     #expect(SnapshotConfidence.degraded.raised() == .low)
     #expect(IngredientFreshness.make(source: source, fetchedAt: Date(timeIntervalSince1970: 1_750_000_600), staleAfter: 3_600).isDegraded == false)
     #expect(TornadoRawParameters.empty.nonNilFieldCount == 0)
+}
+
+private func assertDecodingFails<T: Decodable>(
+    _ type: T.Type,
+    data: Data,
+    expectedMessage: String
+) throws {
+    do {
+        _ = try JSONDecoder().decode(T.self, from: data)
+        #expect(Bool(false))
+    } catch let error as DecodingError {
+        guard case let .dataCorrupted(context) = error else {
+            #expect(Bool(false))
+            return
+        }
+
+        #expect(context.debugDescription == expectedMessage)
+    } catch {
+        #expect(Bool(false))
+    }
 }
