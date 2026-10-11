@@ -165,3 +165,226 @@
 - Implementation status: implemented
 - Validation: `swift test` passed with 10 tests
 - Out-of-scope repositories intentionally not scanned: none
+
+## 2026-07-14
+- Repository reviewed: `ArcusCore`
+- Commit window inspected: `2026-07-07T15:01:53.356Z` through `2026-07-12T14:40:12-06:00` (`977945d87d6c54b6c4a861da3fc2d1cb66b0aaac`); one recent commit after the prior automation run
+- High-risk areas inspected:
+  - Shared DTO contract in `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - Nested shared value type `AirQualityCategory` in the same file
+  - Existing Codable contract patterns in `Tests/ArcusCoreTests/ArcusCoreTests.swift` and `Tests/ArcusCoreTests/StormSetupDTOTests.swift`
+- Files inspected:
+  - `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+  - `Tests/ArcusCoreTests/StormSetupDTOTests.swift`
+  - `Package.swift`
+  - `docs/audits/weekly-test-gap-audit.md`
+- Existing relevant tests found:
+  - `devicePreferenceSyncPayloadRoundTripsStableWireKeys`
+  - `devicePreferenceSyncAcceptedResponseRoundTripsDefaultDateEncoding`
+  - `stormSetupCurrentResponseRoundTripsNestedContract`
+- Top recommended test:
+  - Add a focused Codable contract test for `AirQualityCurrentResponse` that round-trips a realistic payload, asserts `observedAt` survives the intended date strategy, and verifies the nested `AirQualityCategory` fields encode/decode under stable wire keys.
+- Watchlist:
+  - `AirQualityCategory` is only present as a nested shared DTO, so a standalone contract test is optional unless a second consumer or a documented wire fixture appears.
+  - If downstream code expects a non-ISO-8601 `observedAt` wire format, this repo needs a local fixture or comment to pin that contract before the test is finalized.
+- Implementation recommended: `Yes`
+- Out-of-scope repositories intentionally not scanned: none
+
+## 2026-07-21
+- Repository reviewed: `ArcusCore`
+- Commit window inspected: no commits found after the reliable `2026-07-14` audit marker; used current-default-branch high-risk inspection instead of scanning older history
+- High-risk areas inspected:
+  - Shared air-quality response and nested category contracts in `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - Severe-weather alert DTO geometry, revision, and wire-format contracts in `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - Storm-setup nested DTO, enum compatibility, and date-bearing contract behavior in `Sources/ArcusCore/StormSetup/` sources
+- Files inspected:
+  - `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - `Sources/ArcusCore/StormSetup/AnvilAnalyzeProfileResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupCurrentResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupSourceModels.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoIngredientAssessment.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoRawParameters.swift`
+  - `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+  - `Tests/ArcusCoreTests/StormSetupDTOTests.swift`
+  - `docs/audits/weekly-test-gap-audit.md`
+- Existing relevant tests found:
+  - `deviceAlertPayloadDecodesPolygonWireFormat`
+  - `deviceAlertPayloadEncodesMultiPolygonWireFormat`
+  - `tornadoViabilityEnumsUseRawStringPayloads`
+  - `tornadoViabilityEnumsDecodeLegacyObjectPayloadsAndReencodeAsRawStrings`
+  - `tornadoViabilityEnumsRejectInvalidPayloads`
+  - `stormSetupCurrentResponseRoundTripsNestedContract`
+  - `stormSetupHelperTypesMirrorSignalBehavior`
+- Recommended test gaps: **No test gap recommended.** No commits changed the reviewed behavior after the prior marker, the alert and storm-setup contracts have focused local coverage, and the unresolved Air Quality recommendation has no new evidence or materially better strategy to justify duplicating it.
+- Top recommended test: none for this run
+- Watchlist:
+  - The existing `AirQualityCurrentResponse` Codable-contract recommendation from `2026-07-14` remains unresolved. Promote it again only when new contract evidence, a wire fixture, a consumer expectation, or a materially improved test strategy appears.
+- Implementation recommended: **No new implementation recommendation**
+- Out-of-scope repositories intentionally not scanned: `project-arcus`, `arcus-signal`, and all other sibling repositories
+
+## 2026-07-28
+- Repository reviewed: `ArcusCore`
+- Commit window inspected: no commits found after the reliable `2026-07-21` automation marker (`2026-07-21T15:01:58.009Z`); used current-default-branch high-risk inspection instead of scanning older history
+- High-risk areas inspected:
+  - Shared air-quality response and nested category contracts in `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - Severe-weather alert DTO geometry, revision, date, and wire-format contracts in `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - Storm-setup nested DTO, enum compatibility, date, and deterministic helper behavior in `Sources/ArcusCore/StormSetup/`
+- Files inspected:
+  - `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - `Sources/ArcusCore/StormSetup/AnvilAnalyzeProfileResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupCurrentResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupSourceModels.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoIngredientAssessment.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoRawParameters.swift`
+  - `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+  - `Tests/ArcusCoreTests/StormSetupDTOTests.swift`
+  - `docs/audits/weekly-test-gap-audit.md`
+- Existing relevant tests found:
+  - `deviceAlertPayloadDecodesPolygonWireFormat`
+  - `deviceAlertPayloadEncodesMultiPolygonWireFormat`
+  - `tornadoViabilityEnumsUseRawStringPayloads`
+  - `tornadoViabilityEnumsDecodeLegacyObjectPayloadsAndReencodeAsRawStrings`
+  - `tornadoViabilityEnumsRejectInvalidPayloads`
+  - `stormSetupCurrentResponseRoundTripsNestedContract`
+  - `stormSetupHelperTypesMirrorSignalBehavior`
+- Recommended test gaps: **No test gap recommended.** No commits changed the reviewed behavior after the prior automation marker. Existing alert and storm-setup tests exercise the highest-risk local contracts, and the unresolved Air Quality recommendation has no new evidence or materially better test strategy that would justify re-adding it.
+- Top recommended test: none for this run
+- Watchlist:
+  - The existing `AirQualityCurrentResponse` Codable-contract recommendation from `2026-07-14` remains unresolved. Promote it again only when this repository gains a wire fixture, documented date strategy, consumer expectation, changed contract, or materially improved test strategy.
+- Implementation recommended: **No new implementation recommendation**
+- Out-of-scope repositories intentionally not scanned: `project-arcus`, `arcus-signal`, and all other sibling repositories
+
+## 2026-08-04
+- Repository reviewed: `ArcusCore`
+- Commit window inspected: no commits found after the reliable `2026-07-28` automation run marker (`2026-07-28T15:00:54.933Z`); used current-default-branch high-risk inspection instead of scanning older history
+- High-risk areas inspected:
+  - Shared air-quality response and nested category contracts in `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - Severe-weather alert DTO geometry, revision, date, and wire-format contracts in `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - Storm-setup nested DTO, enum compatibility, date, and deterministic helper behavior in `Sources/ArcusCore/StormSetup/`
+- Files inspected:
+  - `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - `Sources/ArcusCore/StormSetup/AnvilAnalyzeProfileResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupCurrentResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupSourceModels.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoIngredientAssessment.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoRawParameters.swift`
+  - `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+  - `Tests/ArcusCoreTests/StormSetupDTOTests.swift`
+  - `docs/audits/weekly-test-gap-audit.md`
+- Existing relevant tests found:
+  - `deviceAlertPayloadDecodesPolygonWireFormat`
+  - `deviceAlertPayloadEncodesMultiPolygonWireFormat`
+  - `tornadoViabilityEnumsUseRawStringPayloads`
+  - `tornadoViabilityEnumsDecodeLegacyObjectPayloadsAndReencodeAsRawStrings`
+  - `tornadoViabilityEnumsRejectInvalidPayloads`
+  - `stormSetupCurrentResponseRoundTripsNestedContract`
+  - `stormSetupHelperTypesMirrorSignalBehavior`
+- Recommended test gaps: **No test gap recommended.** No commits changed the reviewed behavior after the prior automation run. Existing alert and storm-setup tests cover the highest-risk local contracts, and the unresolved Air Quality recommendation has no new evidence or materially better test strategy that would justify duplicating it.
+- Top recommended test: none for this run
+- Watchlist:
+  - The existing `AirQualityCurrentResponse` Codable-contract recommendation from `2026-07-14` remains unresolved. Promote it again only when this repository gains a wire fixture, documented date strategy, consumer expectation, changed contract, or materially improved test strategy.
+- Implementation recommended: **No new implementation recommendation**
+- Out-of-scope repositories intentionally not scanned: `project-arcus`, `arcus-signal`, and all other sibling repositories
+
+## 2026-08-11
+- Repository reviewed: `ArcusCore`
+- Commit window inspected: no commits found after the last automation run (`2026-08-04T15:00:39.570Z`); used current-default-branch high-risk inspection instead of scanning older history
+- High-risk areas inspected:
+  - Shared air-quality response and nested category contracts in `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - Severe-weather alert DTO geometry, revision, date, and wire-format contracts in `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - Storm-setup nested DTO, enum compatibility, date, and deterministic helper behavior in `Sources/ArcusCore/StormSetup/`
+- Files inspected:
+  - `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - `Sources/ArcusCore/StormSetup/AnvilAnalyzeProfileResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupCurrentResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupSourceModels.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoIngredientAssessment.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoRawParameters.swift`
+  - `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+  - `Tests/ArcusCoreTests/StormSetupDTOTests.swift`
+  - `docs/audits/weekly-test-gap-audit.md`
+- Existing relevant tests found:
+  - `deviceAlertPayloadDecodesPolygonWireFormat`
+  - `deviceAlertPayloadEncodesMultiPolygonWireFormat`
+  - `tornadoViabilityEnumsUseRawStringPayloads`
+  - `tornadoViabilityEnumsDecodeLegacyObjectPayloadsAndReencodeAsRawStrings`
+  - `tornadoViabilityEnumsRejectInvalidPayloads`
+  - `stormSetupCurrentResponseRoundTripsNestedContract`
+  - `stormSetupHelperTypesMirrorSignalBehavior`
+- Recommended test gaps: **No test gap recommended.** No commits changed the reviewed behavior after the last run. Existing alert and storm-setup tests cover the highest-risk local contracts, and the unresolved Air Quality recommendation has no new evidence or materially better test strategy that would justify duplicating it.
+- Top recommended test: none for this run
+- Watchlist:
+  - The existing `AirQualityCurrentResponse` Codable-contract recommendation from `2026-07-14` remains unresolved. Promote it again only when this repository gains a wire fixture, documented date strategy, consumer expectation, changed contract, or materially improved test strategy.
+- Implementation recommended: **No new implementation recommendation**
+- Out-of-scope repositories intentionally not scanned: `project-arcus`, `arcus-signal`, and all other sibling repositories
+
+## 2026-08-25
+- Repository reviewed: `ArcusCore`
+- Commit window inspected: no commits found after the last automation run (`2026-08-18T15:00:57.562Z`); used current-default-branch high-risk inspection instead of scanning older history
+- High-risk areas inspected:
+  - Shared air-quality response and nested category contracts in `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - Severe-weather alert DTO geometry, revision, date, and wire-format contracts in `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - Storm-setup nested DTO, enum compatibility, date, and deterministic helper behavior in `Sources/ArcusCore/StormSetup/`
+- Files inspected:
+  - `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - `Sources/ArcusCore/StormSetup/AnvilAnalyzeProfileResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupCurrentResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupSourceModels.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoIngredientAssessment.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoRawParameters.swift`
+  - `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+  - `Tests/ArcusCoreTests/StormSetupDTOTests.swift`
+  - `docs/audits/weekly-test-gap-audit.md`
+- Existing relevant tests found:
+  - `deviceAlertPayloadDecodesPolygonWireFormat`
+  - `deviceAlertPayloadEncodesMultiPolygonWireFormat`
+  - `tornadoViabilityEnumsUseRawStringPayloads`
+  - `tornadoViabilityEnumsDecodeLegacyObjectPayloadsAndReencodeAsRawStrings`
+  - `tornadoViabilityEnumsRejectInvalidPayloads`
+  - `stormSetupCurrentResponseRoundTripsNestedContract`
+  - `stormSetupHelperTypesMirrorSignalBehavior`
+- Recommended test gaps: **No test gap recommended.** No commits changed the reviewed behavior after the last run. Existing alert and storm-setup tests cover the highest-risk local contracts, and the unresolved Air Quality recommendation has no new local evidence or materially better test strategy that would justify duplicating it.
+- Top recommended test: none for this run
+- Watchlist:
+  - The existing `AirQualityCurrentResponse` Codable-contract recommendation from `2026-07-14` remains unresolved. Promote it again only when this repository gains a wire fixture, documented date strategy, consumer expectation, changed contract, or materially improved test strategy.
+- Implementation recommended: **No new implementation recommendation**
+- Out-of-scope repositories intentionally not scanned: `project-arcus`, `arcus-signal`, and all other sibling repositories
+
+## 2026-09-01
+- Repository reviewed: `ArcusCore`
+- Commit window inspected: no commits found after the last automation run (`2026-08-25T15:00:54.342Z`); used current-default-branch high-risk inspection instead of scanning older history
+- High-risk areas inspected:
+  - Shared air-quality response and nested category contracts in `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - Severe-weather alert DTO geometry, revision, date, and wire-format contracts in `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - Storm-setup nested DTO, enum compatibility, date, and deterministic helper behavior in `Sources/ArcusCore/StormSetup/`
+- Files inspected:
+  - `Sources/ArcusCore/AirQualityCurrentResponse.swift`
+  - `Sources/ArcusCore/DeviceAlertPayload.swift`
+  - `Sources/ArcusCore/StormSetup/AnvilAnalyzeProfileResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupCurrentResponse.swift`
+  - `Sources/ArcusCore/StormSetup/StormSetupSourceModels.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoIngredientAssessment.swift`
+  - `Sources/ArcusCore/StormSetup/TornadoRawParameters.swift`
+  - `Tests/ArcusCoreTests/ArcusCoreTests.swift`
+  - `Tests/ArcusCoreTests/StormSetupDTOTests.swift`
+  - `docs/audits/weekly-test-gap-audit.md`
+- Existing relevant tests found:
+  - `deviceAlertPayloadDecodesPolygonWireFormat`
+  - `deviceAlertPayloadEncodesMultiPolygonWireFormat`
+  - `tornadoViabilityEnumsUseRawStringPayloads`
+  - `tornadoViabilityEnumsDecodeLegacyObjectPayloadsAndReencodeAsRawStrings`
+  - `tornadoViabilityEnumsRejectInvalidPayloads`
+  - `stormSetupCurrentResponseRoundTripsNestedContract`
+  - `stormSetupHelperTypesMirrorSignalBehavior`
+- Recommended test gaps: **No test gap recommended.** No commits changed the reviewed behavior after the last run. Existing alert and storm-setup tests cover the highest-risk local contracts, and the unresolved Air Quality recommendation has no new local evidence or materially better test strategy that would justify duplicating it.
+- Top recommended test: none for this run
+- Watchlist:
+  - The existing `AirQualityCurrentResponse` Codable-contract recommendation from `2026-07-14` remains unresolved. Promote it again only when this repository gains a wire fixture, documented date strategy, consumer expectation, changed contract, or materially improved test strategy.
+- Implementation recommended: **No new implementation recommendation**
+- Out-of-scope repositories intentionally not scanned: `project-arcus`, `arcus-signal`, and all other sibling repositories
