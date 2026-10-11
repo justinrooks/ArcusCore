@@ -424,8 +424,127 @@ private let locationSnapshotJSON = """
 
     #expect(object?[HotAlertAPNsPayload.arcusAlertIDKey] as? String == "11111111-2222-3333-4444-555555555555")
     #expect(object?[HotAlertAPNsPayload.revisionSentKey] as? String == "2025-05-20T12:41:36Z")
+    #expect(object?[HotAlertAPNsPayload.productKindKey] as? String == "nwsAlert")
+    #expect(object?[HotAlertAPNsPayload.resourceIDKey] as? String == "11111111-2222-3333-4444-555555555555")
     #expect(object?["alertID"] == nil)
     #expect(object?["seriesId"] == nil)
+}
+
+@Test func hotAlertAPNsPayloadEncodesTypedAlertWithLegacyRolloutKeys() throws {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    let payload = try #require(HotAlertAPNsPayload(
+        productKind: .nwsAlert,
+        resourceID: "alert-123",
+        revisionSent: Date(timeIntervalSince1970: 1_747_744_896)
+    ))
+
+    let data = try encoder.encode(payload)
+    let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+    #expect(object?[HotAlertAPNsPayload.productKindKey] as? String == "nwsAlert")
+    #expect(object?[HotAlertAPNsPayload.resourceIDKey] as? String == "alert-123")
+    #expect(object?[HotAlertAPNsPayload.arcusAlertIDKey] as? String == "alert-123")
+    #expect(object?[HotAlertAPNsPayload.revisionSentKey] as? String == "2025-05-20T12:41:36Z")
+}
+
+@Test func hotAlertAPNsPayloadDecodesTypedAlertAndNormalizesIdentifier() throws {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    let json = #"{"productKind":"nwsAlert","resourceID":"  alert-123  ","revisionSent":"2026-05-20T12:34:56Z"}"#
+
+    let payload = try decoder.decode(HotAlertAPNsPayload.self, from: Data(json.utf8))
+
+    #expect(payload.productKind == .nwsAlert)
+    #expect(payload.resourceID == "alert-123")
+    #expect(payload.arcusAlertId == "alert-123")
+    #expect(payload.revisionSent == ISO8601DateFormatter().date(from: "2026-05-20T12:34:56Z"))
+}
+
+@Test func hotAlertAPNsPayloadDecodesTypedMesoscaleDiscussionWithoutAlertRevision() throws {
+    let json = #"{"productKind":"mesoscaleDiscussion","resourceID":"SPC-MD-2026-1234","revisionSent":"invalid"}"#
+
+    let payload = try JSONDecoder().decode(HotAlertAPNsPayload.self, from: Data(json.utf8))
+
+    #expect(payload.productKind == .mesoscaleDiscussion)
+    #expect(payload.resourceID == "SPC-MD-2026-1234")
+    #expect(payload.revisionSent == nil)
+    #expect(payload.arcusAlertId == nil)
+}
+
+@Test func hotAlertAPNsPayloadRejectsMissingOrInvalidProductKindWithoutLegacyAlertID() {
+    let decoder = JSONDecoder()
+    let missingKind = #"{"resourceID":"SPC-MD-2026-1234"}"#
+    let invalidKind = #"{"productKind":"unknown","resourceID":"SPC-MD-2026-1234"}"#
+
+    #expect(throws: (any Error).self) {
+        try decoder.decode(HotAlertAPNsPayload.self, from: Data(missingKind.utf8))
+    }
+    #expect(throws: (any Error).self) {
+        try decoder.decode(HotAlertAPNsPayload.self, from: Data(invalidKind.utf8))
+    }
+}
+
+@Test func hotAlertAPNsPayloadRejectsTypedProductsWithoutUsableResourceIDs() {
+    let decoder = JSONDecoder()
+    let missingAlertID = #"{"productKind":"nwsAlert"}"#
+    let blankAlertID = #"{"productKind":"nwsAlert","resourceID":"  "}"#
+    let missingMesoID = #"{"productKind":"mesoscaleDiscussion"}"#
+    let blankMesoID = #"{"productKind":"mesoscaleDiscussion","resourceID":"  "}"#
+
+    for json in [missingAlertID, blankAlertID, missingMesoID, blankMesoID] {
+        #expect(throws: (any Error).self) {
+            try decoder.decode(HotAlertAPNsPayload.self, from: Data(json.utf8))
+        }
+    }
+    #expect(HotAlertAPNsPayload(productKind: .nwsAlert, resourceID: "  ") == nil)
+    #expect(HotAlertAPNsPayload(productKind: .mesoscaleDiscussion, resourceID: "  ") == nil)
+}
+
+@Test func hotAlertAPNsPayloadRejectsConflictingLegacyAndTypedIdentities() {
+    let decoder = JSONDecoder()
+    let conflictingAlert = #"{"productKind":"nwsAlert","resourceID":"alert-B","arcusAlertId":"alert-A"}"#
+    let mesoWithLegacyAlertID = #"{"productKind":"mesoscaleDiscussion","resourceID":"SPC-MD-2026-1234","arcusAlertId":"alert-A"}"#
+
+    for json in [conflictingAlert, mesoWithLegacyAlertID] {
+        #expect(throws: (any Error).self) {
+            try decoder.decode(HotAlertAPNsPayload.self, from: Data(json.utf8))
+        }
+    }
+}
+
+@Test func hotAlertAPNsPayloadPreservesOptionalLegacyAlertIdentifier() throws {
+    let nilIdentifierPayload = HotAlertAPNsPayload(arcusAlertId: nil, revisionSent: nil)
+    #expect(nilIdentifierPayload.arcusAlertId == nil)
+    #expect(nilIdentifierPayload.resolvedAlertID == nil)
+
+    let encoded = try JSONEncoder().encode(nilIdentifierPayload)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+    #expect(object?[HotAlertAPNsPayload.arcusAlertIDKey] == nil)
+    #expect(object?[HotAlertAPNsPayload.resourceIDKey] == nil)
+
+    for json in ["{}", #"{"arcusAlertId":"  "}"#] {
+        let decoded = try JSONDecoder().decode(HotAlertAPNsPayload.self, from: Data(json.utf8))
+        #expect(decoded.productKind == .nwsAlert)
+        #expect(decoded.arcusAlertId == nil)
+        #expect(decoded.resolvedAlertID == nil)
+    }
+}
+
+@Test func hotAlertAPNsPayloadEncodesMesoscaleDiscussionWithoutAlertSemantics() throws {
+    let payload = try #require(HotAlertAPNsPayload(
+        productKind: .mesoscaleDiscussion,
+        resourceID: "SPC-MD-2026-1234",
+        revisionSent: Date(timeIntervalSince1970: 1_747_744_896)
+    ))
+
+    let data = try JSONEncoder().encode(payload)
+    let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+    #expect(object?[HotAlertAPNsPayload.productKindKey] as? String == "mesoscaleDiscussion")
+    #expect(object?[HotAlertAPNsPayload.resourceIDKey] as? String == "SPC-MD-2026-1234")
+    #expect(object?[HotAlertAPNsPayload.arcusAlertIDKey] == nil)
+    #expect(object?[HotAlertAPNsPayload.revisionSentKey] == nil)
 }
 
 @Test func hotAlertAPNsPayloadRoundTripPreservesCanonicalIdentifierAndRevisionSent() throws {
