@@ -19,3 +19,5 @@ Guideline for versioning changes in this package
 1.0.0  once app + server both depend on it and contracts feel stable
 ```
 
+## Release notes
+See [CHANGELOG.md](CHANGELOG.md) for release notes linked to each Git tag, including a comparison with the previous version.
