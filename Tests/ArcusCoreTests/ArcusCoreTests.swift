@@ -297,13 +297,15 @@ func devicePreferenceSyncPayloadPreservesExplicitMesoPreference(value: Bool) thr
     #expect(decoded.isSubscribed == true)
 }
 
-@Test func devicePreferenceSyncAcceptedResponseRoundTripsDefaultDateEncoding() throws {
+@Test(arguments: [false, true])
+func devicePreferenceSyncAcceptedResponseRoundTripsDefaultDateEncoding(serverOwnsMesoDelivery: Bool) throws {
     let encoder = JSONEncoder()
     let decoder = JSONDecoder()
 
     let response = DevicePreferenceSyncAcceptedResponse(
         status: "accepted",
-        receivedAt: Date(timeIntervalSince1970: 1_747_744_896)
+        receivedAt: Date(timeIntervalSince1970: 1_747_744_896),
+        serverOwnsMesoNotificationDelivery: serverOwnsMesoDelivery
     )
 
     let encoded = try encoder.encode(response)
@@ -312,6 +314,34 @@ func devicePreferenceSyncPayloadPreservesExplicitMesoPreference(value: Bool) thr
 
     #expect(object?["status"] as? String == "accepted")
     #expect(object?["receivedAt"] is NSNumber)
+    #expect(object?["serverOwnsMesoNotificationDelivery"] as? Bool == serverOwnsMesoDelivery)
+    #expect(decoded.status == response.status)
+    #expect(decoded.receivedAt == response.receivedAt)
+    #expect(decoded.serverOwnsMesoNotificationDelivery == serverOwnsMesoDelivery)
+}
+
+@Test func devicePreferenceSyncAcceptedResponseDecodesLegacyPayloadWithoutMesoDeliveryOwnership() throws {
+    let payload = Data(#"{"status":"accepted","receivedAt":769467696}"#.utf8)
+
+    let decoded = try JSONDecoder().decode(DevicePreferenceSyncAcceptedResponse.self, from: payload)
+
+    #expect(decoded.status == "accepted")
+    #expect(decoded.receivedAt == Date(timeIntervalSince1970: 1_747_774_896))
+    #expect(decoded.serverOwnsMesoNotificationDelivery == nil)
+}
+
+@Test func devicePreferenceSyncAcceptedResponsePreservesLegacyInitializerShape() throws {
+    let response = DevicePreferenceSyncAcceptedResponse(
+        status: "accepted",
+        receivedAt: Date(timeIntervalSince1970: 1_747_744_896)
+    )
+
+    let encoded = try JSONEncoder().encode(response)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+    let decoded = try JSONDecoder().decode(DevicePreferenceSyncAcceptedResponse.self, from: encoded)
+
+    #expect(response.serverOwnsMesoNotificationDelivery == nil)
+    #expect(object?["serverOwnsMesoNotificationDelivery"] == nil)
     #expect(decoded.status == response.status)
     #expect(decoded.receivedAt == response.receivedAt)
 }
