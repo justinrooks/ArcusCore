@@ -23,6 +23,9 @@ public struct LocationSnapshotPushPayload: Sendable, Codable, Equatable {
     public let countyLabel: String?
     public let fireZoneLabel: String?
     public let isSubscribed: Bool?
+    /// Meso notification preference advertised by clients that support it.
+    /// `nil` means the client's capability or preference is unknown.
+    public let mesoNotificationsEnabled: Bool?
 
     public init(
         capturedAt: Date,
@@ -45,7 +48,8 @@ public struct LocationSnapshotPushPayload: Sendable, Codable, Equatable {
         apnsEnvironment: String,
         countyLabel: String?,
         fireZoneLabel: String?,
-        isSubscribed: Bool?
+        isSubscribed: Bool?,
+        mesoNotificationsEnabled: Bool? = nil
     ) {
         self.capturedAt = capturedAt
         self.locationAgeSeconds = locationAgeSeconds
@@ -68,6 +72,7 @@ public struct LocationSnapshotPushPayload: Sendable, Codable, Equatable {
         self.countyLabel = countyLabel
         self.fireZoneLabel = fireZoneLabel
         self.isSubscribed = isSubscribed
+        self.mesoNotificationsEnabled = mesoNotificationsEnabled
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -92,5 +97,6 @@ public struct LocationSnapshotPushPayload: Sendable, Codable, Equatable {
         case countyLabel
         case fireZoneLabel
         case isSubscribed
+        case mesoNotificationsEnabled
     }
 }

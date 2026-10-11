@@ -135,6 +135,7 @@ private let polygonJSON = """
     #expect(payload.zone == "COZ041")
     #expect(payload.installationId == "11111111-2222-3333-4444-555555555555")
     #expect(payload.isSubscribed == true)
+    #expect(payload.mesoNotificationsEnabled == nil)
 }
 
 @Test func locationSnapshotPushPayloadEncodesStableWireKeys() throws {
@@ -174,6 +175,43 @@ private let polygonJSON = """
     #expect(object?["installationId"] as? String == "11111111-2222-3333-4444-555555555555")
     #expect(object?["countyCode"] == nil)
     #expect(object?["forecastZone"] == nil)
+    #expect(object?["mesoNotificationsEnabled"] == nil)
+}
+
+@Test(arguments: [false, true])
+func locationSnapshotPushPayloadPreservesExplicitMesoPreference(value: Bool) throws {
+    let payload = LocationSnapshotPushPayload(
+        capturedAt: Date(timeIntervalSince1970: 1_714_000_000),
+        locationAgeSeconds: 1,
+        horizontalAccuracyMeters: 2,
+        cellScheme: "h3",
+        h3Cell: nil,
+        h3Resolution: nil,
+        county: nil,
+        zone: nil,
+        fireZone: nil,
+        apnsDeviceToken: "token",
+        installationId: "installation",
+        source: "unknown",
+        auth: "whenInUse",
+        appVersion: "1.2.3",
+        buildNumber: "456",
+        platform: "iOS",
+        osVersion: "26.0",
+        apnsEnvironment: "sandbox",
+        countyLabel: nil,
+        fireZoneLabel: nil,
+        isSubscribed: false,
+        mesoNotificationsEnabled: value
+    )
+
+    let encoded = try JSONEncoder().encode(payload)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+    let decoded = try JSONDecoder().decode(LocationSnapshotPushPayload.self, from: encoded)
+
+    #expect(object?["mesoNotificationsEnabled"] as? Bool == value)
+    #expect(decoded.mesoNotificationsEnabled == value)
+    #expect(decoded.isSubscribed == false)
 }
 
 @Test func devicePreferenceSyncPayloadRoundTripsStableWireKeys() throws {
@@ -192,7 +230,8 @@ private let polygonJSON = """
         auth: "whenInUse",
         isSubscribed: true,
         source: "backgroundRefresh",
-        reason: "userChangedPreference"
+        reason: "userChangedPreference",
+        mesoNotificationsEnabled: true
     )
 
     let encoded = try encoder.encode(payload)
@@ -205,8 +244,57 @@ private let polygonJSON = """
     #expect(object?["isSubscribed"] as? Bool == true)
     #expect(object?["source"] as? String == "backgroundRefresh")
     #expect(object?["reason"] as? String == "userChangedPreference")
+    #expect(object?["mesoNotificationsEnabled"] as? Bool == true)
     #expect(object?["installation_id"] == nil)
     #expect(decoded == payload)
+}
+
+@Test func devicePreferenceSyncPayloadDecodesLegacyJSONWithoutMesoPreference() throws {
+    let payload = DevicePreferenceSyncPayload(
+        installationId: "installation",
+        apnsDeviceToken: "token",
+        apnsEnvironment: "sandbox",
+        platform: "iOS",
+        osVersion: "26.0",
+        appVersion: "1.2.3",
+        buildNumber: "456",
+        auth: "whenInUse",
+        isSubscribed: true,
+        source: "settings",
+        reason: "userChangedPreference"
+    )
+    let encoded = try JSONEncoder().encode(payload)
+    let object = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+
+    let decoded = try JSONDecoder().decode(DevicePreferenceSyncPayload.self, from: encoded)
+
+    #expect(object?["mesoNotificationsEnabled"] == nil)
+    #expect(decoded.mesoNotificationsEnabled == nil)
+    #expect(decoded.isSubscribed == true)
+}
+
+@Test(arguments: [false, true])
+func devicePreferenceSyncPayloadPreservesExplicitMesoPreference(value: Bool) throws {
+    let payload = DevicePreferenceSyncPayload(
+        installationId: "installation",
+        apnsDeviceToken: "token",
+        apnsEnvironment: "sandbox",
+        platform: "iOS",
+        osVersion: "26.0",
+        appVersion: "1.2.3",
+        buildNumber: "456",
+        auth: "whenInUse",
+        isSubscribed: true,
+        source: "settings",
+        reason: "userChangedPreference",
+        mesoNotificationsEnabled: value
+    )
+
+    let encoded = try JSONEncoder().encode(payload)
+    let decoded = try JSONDecoder().decode(DevicePreferenceSyncPayload.self, from: encoded)
+
+    #expect(decoded.mesoNotificationsEnabled == value)
+    #expect(decoded.isSubscribed == true)
 }
 
 @Test func devicePreferenceSyncAcceptedResponseRoundTripsDefaultDateEncoding() throws {
