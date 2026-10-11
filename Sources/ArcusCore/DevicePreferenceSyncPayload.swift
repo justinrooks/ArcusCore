@@ -19,6 +19,9 @@ public struct DevicePreferenceSyncPayload: Sendable, Codable, Equatable {
     public let isSubscribed: Bool
     public let source: String
     public let reason: String
+    /// Meso notification preference advertised by clients that support it.
+    /// `nil` means the client's capability or preference is unknown.
+    public let mesoNotificationsEnabled: Bool?
     
     public init(
         installationId: String,
@@ -31,7 +34,8 @@ public struct DevicePreferenceSyncPayload: Sendable, Codable, Equatable {
         auth: String,
         isSubscribed: Bool,
         source: String,
-        reason: String
+        reason: String,
+        mesoNotificationsEnabled: Bool? = nil
     ) {
         self.installationId = installationId
         self.apnsDeviceToken = apnsDeviceToken
@@ -44,9 +48,10 @@ public struct DevicePreferenceSyncPayload: Sendable, Codable, Equatable {
         self.isSubscribed = isSubscribed
         self.source = source
         self.reason = reason
+        self.mesoNotificationsEnabled = mesoNotificationsEnabled
     }
     
     private enum CodingKeys: String, CodingKey {
-        case installationId, apnsDeviceToken, apnsEnvironment, platform, osVersion, appVersion, buildNumber, auth, isSubscribed, source, reason
+        case installationId, apnsDeviceToken, apnsEnvironment, platform, osVersion, appVersion, buildNumber, auth, isSubscribed, source, reason, mesoNotificationsEnabled
     }
 }
