@@ -21,3 +21,11 @@ Guideline for versioning changes in this package
 
 ## Release notes
 See [CHANGELOG.md](CHANGELOG.md) for release notes linked to each Git tag, including a comparison with the previous version.
+
+## Installation enrollment v2
+
+`InstallationEnrollmentRequest` is the JSON body for `POST /v2/devices/enroll` (also available at `/api/v2/devices/enroll`) over HTTPS. `installationId` is a UUID string; `credential` is the base64url encoding of 32 cryptographically random bytes. The client persists the credential before enrollment and retries a lost response with the same UUID and credential. These DTOs describe the wire shape; the server must validate the UUID and credential format.
+
+HTTP 200 with `InstallationEnrollmentAcceptedResponse` status `accepted` acknowledges a new installation, an eligible unclaimed legacy installation, or a same-credential retry. A malformed request returns 400 and a different credential for a claimed UUID returns 409. No credential is returned. Subsequent protected v2 writes use `Authorization: Bearer <credential>`; missing or invalid authorization returns 401. Enrollment does not require an APNs token or permission. Credentials must not be logged or embedded in other device payloads.
+
+Adopt a reviewed ArcusCore revision in Signal #386 first, deploy the compatible server, then adopt it in SkyAware #796 before the client release. Consent ordering remains owned by Signal #379; v1 retirement requires separate approval.
